@@ -175,4 +175,51 @@ class TransactionStreamAnalyzerTest {
         assertThrows(IllegalArgumentException.class,
                 () -> analyzer.processBatches(Stream.empty(), 2, -1));
     }
+    @Test
+    void testTransactionEqualsThreshold() {
+        Transaction t1 = transaction(1, 100);
+        Transaction t2 = transaction(2, 150);
+
+        Optional<Transaction> result =
+                analyzer.findFirstHighValueTransaction(
+                        Stream.of(t1, t2),
+                        BigDecimal.valueOf(100)
+                );
+
+        assertEquals(Optional.of(t2), result);
+    }
+
+    @Test
+    void testEmptyStreams() {
+        Optional<Transaction> first =
+                analyzer.findFirstHighValueTransaction(
+                        Stream.empty(), BigDecimal.valueOf(100)
+                );
+
+        List<Transaction> second =
+                analyzer.takeTransactionsUntilBudgetExceeded(
+                        Stream.empty(), BigDecimal.valueOf(100)
+                );
+
+        List<List<Transaction>> third =
+                analyzer.processBatches(Stream.empty(), 2, 2);
+
+        assertTrue(first.isEmpty());
+        assertTrue(second.isEmpty());
+        assertTrue(third.isEmpty());
+    }
+
+    @Test
+    void testIncompleteBatch() {
+        Transaction t1 = transaction(1, 10);
+        Transaction t2 = transaction(2, 20);
+        Transaction t3 = transaction(3, 30);
+
+        List<List<Transaction>> result =
+                analyzer.processBatches(
+                        Stream.of(t1, t2, t3), 2, 2
+                );
+
+        assertEquals(List.of(List.of(t1, t2)), result);
+    }
 }
